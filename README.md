@@ -313,3 +313,123 @@ export default App;
 ```
 
 </details>
+
+<br />
+
+<!-- 조건부 라우팅 설정 (Router 설정 필요) -->
+<details>
+
+<summary><strong>조건부 라우팅 설정 (Router 설정 필요)</strong></summary>
+<br />
+
+```tsx
+/* src/providers/authProvider.tsx */
+
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+
+type AuthContextType = {
+  isAuthenticated: boolean;
+  signIn: () => void;
+  signOut: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('isAuthenticated'));
+
+  const signIn = useCallback(() => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+  }, []);
+
+  const signOut = useCallback(() => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+  }, []);
+
+  const value = useMemo(() => ({ isAuthenticated, signIn, signOut }), [isAuthenticated, signIn, signOut]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export default AuthProvider;
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error();
+  return context;
+};
+```
+
+```tsx
+/* src/routes/authenticatedRoute.tsx */
+
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/providers/authProvider';
+
+const AuthenticatedRoute = () => {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+
+  return <Outlet />;
+};
+
+export default AuthenticatedRoute;
+```
+
+```tsx
+/* src/routes/nonAuthenticatedRoute.tsx */
+
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/providers/authProvider';
+
+const NonAuthenticatedRoute = () => {
+  const { isAuthenticated } = useAuth();
+
+  if (isAuthenticated) return <Navigate to="/" replace />;
+
+  return <Outlet />;
+};
+
+export default NonAuthenticatedRoute;
+```
+
+```tsx
+/* src/router.tsx */
+
+import { Route, Routes } from 'react-router-dom';
+import AuthenticatedRoute from './routes/authenticatedRoute';
+import NonAuthenticatedRoute from './routes/nonAuthenticatedRoute';
+
+const Router = () => {
+  return (
+    <Routes>
+      <Route element={<NonAuthenticatedRoute />}>
+        <Route path="/signin" element={<SignInPage />} />
+      </Route>
+
+      <Route element={<AuthenticatedRoute />}>
+        <Route path="/" element={<HomePage />} />
+      </Route>
+    </Routes>
+  );
+};
+
+export default Router;
+```
+
+```tsx
+/* src/provider.tsx */
+
+import AuthProvider from './providers/authProvider';
+
+const Provider = ({ children }: { children: React.ReactNode }) => {
+  return <AuthProvider>{children}</AuthProvider>;
+}
+
+export default Provider;
+```
+
+</details>
