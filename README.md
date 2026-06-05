@@ -111,7 +111,6 @@ export default defineConfig({
 
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   }
 }
